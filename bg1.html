@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Haptic Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap');
+
+        :root {
+            --vibration: 0px;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            /* Prevents annoying mobile refresh gestures */
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
+        /* Physical screen-shake for iOS "Visual Haptics" */
+        #main-wrapper {
+            width: 100%; height: 100%;
+            transform: translate(var(--vibration), var(--vibration));
+            transition: transform 0.05s linear;
+        }
+
+        canvas { display: block; position: absolute; z-index: 1; }
+
+        .ui-container {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: space-between; padding: 60px 20px;
+            pointer-events: none;
+        }
+
+        .nav-dock {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 25px; border-radius: 30px;
+            display: flex; gap: 25px; pointer-events: auto;
+        }
+
+        .nav-dock a { color: #888; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .hero-text { text-align: center; }
+        .hero-text p { color: #444; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; margin: 0; }
+
+        .btn-start {
+            background: #fff; color: #000; border: none;
+            padding: 18px 40px; border-radius: 40px;
+            font-weight: 800; font-size: 14px; pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.2);
+        }
+
+        .btn-start:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div id="main-wrapper">
+    <canvas id="canvas"></canvas>
+
+    <div class="ui-container">
+        <div class="nav-dock">
+            <a href="#">Design</a>
+            <a href="#">Tech</a>
+            <a href="#">Contact</a>
+        </div>
+
+        <div class="hero-text">
+            <p>Interactive Experience</p>
+            </div>
+
+        <button class="btn-start" id="vibeBtn">ACTIVATE HAPTICS</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const vibeBtn = document.getElementById('vibeBtn');
+    const wrapper = document.getElementById('main-wrapper');
+
+    // --- CHANGE YOUR NAME HERE ---
+    const NAME = "PARTH"; 
+    // ----------------------------
+
+    let particles = [];
+    const mouse = { x: -1000, y: -1000, radius: 50 }; // Smaller radius for finger precision
+    let canVibrate = false;
+    let lastPos = { x: 0, y: 0 };
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Initialize Haptics Engine on Tap
+    vibeBtn.addEventListener('click', () => {
+        canVibrate = true;
+        if (navigator.vibrate) navigator.vibrate(20);
+        vibeBtn.style.opacity = "0.2";
+        vibeBtn.innerText = "SYSTEM ACTIVE";
+    });
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x + (Math.random() * 50 - 25);
+            this.y = y + (Math.random() * 50 - 25);
+            this.baseX = x;
+            this.baseY = y;
+            this.size = 2; // Slightly larger for mobile visibility
+            this.density = (Math.random() * 15) + 5;
+        }
+        draw() {
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        update() {
+            let dx = mouse.x - this.x;
+            let dy = mouse.y - this.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < mouse.radius) {
+                let force = (mouse.radius - dist) / mouse.radius;
+                this.x -= (dx/dist) * force * this.density;
+                this.y -= (dy/dist) * force * this.density;
+                
+                // Trigger Hardware Vibe + Visual Shake
+                if (canVibrate) {
+                    if (navigator.vibrate) navigator.vibrate(5); // Physical (Android)
+                    const shake = (Math.random() * 2 - 1) + 'px';
+                    document.documentElement.style.setProperty('--vibration', shake); // Visual (iOS)
+                }
+            } else {
+                this.x -= (this.x - this.baseX) / 8;
+                this.y -= (this.y - this.baseY) / 8;
+                // Stop shaking when away from particles
+                document.documentElement.style.setProperty('--vibration', '0px');
+            }
+        }
+    }
+
+    function init() {
+        particles = [];
+        // Adjust Font Size for Mobile Portrait
+        const fontSize = Math.min(canvas.width * 0.22, 100);
+        ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans'`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'white';
+        ctx.fillText(NAME, canvas.width/2, canvas.height/2);
+
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Scan pixels - 'step' 5 for high density
+        for (let y = 0; y < data.height; y += 5) {
+            for (let x = 0; x < data.width; x += 5) {
+                if (data.data[(y * 4 * data.width) + (x * 4) + 3] > 128) {
+                    particles.push(new Particle(x, y));
+                }
+            }
+        }
+    }
+
+    const handleMove = (e) => {
+        const touch = e.touches ? e.touches[0] : e;
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+    };
+
+    window.addEventListener('touchstart', handleMove);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        init();
+    });
+
+    function animate() {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for(let p of particles) {
+            p.update();
+            p.draw();
+        }
+        requestAnimationFrame(animate);
+    }
+
+    init();
+    animate();
+</script>
+</body>
+</html>
