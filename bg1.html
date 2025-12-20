@@ -3,14 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elite Haptic Interface</title>
+    <title>Quantum Typography</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;800&display=swap');
-
-        :root {
-            --accent: #0071e3;
-            --vibration-jitter: 0px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap');
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -19,213 +14,135 @@
             touch-action: none; overscroll-behavior: none;
         }
 
-        /* Jitter wrapper for iOS Visual Haptics */
-        #haptic-wrapper {
-            width: 100%; height: 100%;
-            transform: translate(var(--vibration-jitter), var(--vibration-jitter));
+        canvas { 
+            display: block; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
         }
 
-        canvas { display: block; position: absolute; z-index: 1; top: 0; left: 0; }
-
-        /* --- UI OVERLAYS --- */
-        .glass-nav {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 100; display: flex; gap: 30px; padding: 12px 30px;
-            background: rgba(20, 20, 20, 0.7); border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-radius: 40px; align-items: center;
+        /* Essential Navbar */
+        nav {
+            position: fixed; top: 0; width: 100%;
+            padding: 25px; z-index: 10;
+            display: flex; justify-content: space-between;
+            box-sizing: border-box; pointer-events: none;
         }
 
-        .glass-nav a { color: #888; text-decoration: none; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .glass-nav .active { color: #fff; }
-
-        .hero-container {
-            position: relative; z-index: 10; height: 100vh;
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; pointer-events: none;
-        }
-
-        .tagline { color: var(--accent); font-size: 10px; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 20px; font-weight: 800; }
-
-        .footer-cta {
-            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-            z-index: 20; pointer-events: auto;
-        }
-
-        .btn-vibe {
-            background: #fff; color: #000; border: none; padding: 18px 45px;
-            border-radius: 50px; font-weight: 800; font-size: 14px;
-            cursor: pointer; box-shadow: 0 10px 40px rgba(255,255,255,0.15);
-            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        .btn-vibe:active { transform: scale(0.92); opacity: 0.8; }
-
-        /* Activation Overlay */
-        #gatekeeper {
-            position: fixed; inset: 0; background: #000; z-index: 1000;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; text-align: center;
-        }
-        .gatekeeper-msg { color: white; border: 1px solid #222; padding: 40px; border-radius: 30px; background: #050505; }
+        .logo { color: white; font-weight: 800; font-size: 18px; pointer-events: auto; }
+        .menu { color: #555; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-<div id="gatekeeper">
-    <div class="gatekeeper-msg">
-        <h2 style="margin: 0 0 10px 0;">SYMMETRY ENGINE</h2>
-        <p style="color: #666; font-size: 13px;">TAP TO SYNC HARDWARE HAPTICS</p>
-    </div>
-</div>
-
-<div id="haptic-wrapper">
-    <nav class="glass-nav">
-        <a href="#" class="active">Vision</a>
-        <a href="#">Engine</a>
-        <a href="#">Contact</a>
+    <nav>
+        <div class="logo">SYMMETRY</div>
+        <div class="menu">Menu</div>
     </nav>
-
-    <div class="hero-container">
-        <div class="tagline">Next Gen Interaction</div>
-        </div>
 
     <canvas id="canvas"></canvas>
 
-    <div class="footer-cta">
-        <button class="btn-vibe" id="vibeStatus">ENGINE READY</button>
-    </div>
-</div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-<script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const gatekeeper = document.getElementById('gatekeeper');
-    const root = document.documentElement;
+        // --- ENTER YOUR NAME HERE ---
+        const MY_NAME = "PREMIUM"; 
+        // ----------------------------
 
-    // --- CONFIGURATION ---
-    const NAME_TO_DISPLAY = "SNEH"; // <--- CHANGE YOUR NAME HERE
-    let particles = [];
-    const interaction = { x: -1000, y: -1000, radius: 70 }; // Precise interaction circle
-    let hapticsEnabled = false;
-
-    // 1. HARDWARE ACTIVATION
-    window.addEventListener('touchstart', () => {
-        if (!hapticsEnabled) {
-            hapticsEnabled = true;
-            gatekeeper.style.opacity = '0';
-            setTimeout(() => gatekeeper.style.display = 'none', 300);
-            if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
-        }
-    });
-
-    window.addEventListener('mousedown', () => {
-        if (!hapticsEnabled) {
-            hapticsEnabled = true;
-            gatekeeper.style.opacity = '0';
-            setTimeout(() => gatekeeper.style.display = 'none', 300);
-        }
-    });
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    class Particle {
-        constructor(x, y) {
-            this.x = x + (Math.random() * 100 - 50);
-            this.y = y + (Math.random() * 100 - 50);
-            this.originX = x;
-            this.originY = y;
-            this.size = 2;
-            this.friction = 0.95;
-            this.ease = 0.12;
-            this.density = (Math.random() * 20) + 2;
-            this.color = Math.random() > 0.98 ? '#0071e3' : '#ffffff';
+        let particles = [];
+        const mouse = { x: -1000, y: -1000, radius: 65 };
+        
+        // Setup Canvas Size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
         }
 
-        draw() {
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        update() {
-            let dx = interaction.x - this.x;
-            let dy = interaction.y - this.y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < interaction.radius) {
-                let force = (interaction.radius - distance) / interaction.radius;
-                this.x -= (dx / distance) * force * this.density;
-                this.y -= (dy / distance) * force * this.density;
-
-                // VIBRATION ENGINE TRIGGER
-                if (hapticsEnabled) {
-                    if (navigator.vibrate) navigator.vibrate(10); // Physical (Android)
-                    const jitter = (Math.random() * 2 - 1) + 'px'; // Visual (iOS)
-                    root.style.setProperty('--vibration-jitter', jitter);
-                }
-            } else {
-                this.x += (this.originX - this.x) * this.ease;
-                this.y += (this.originY - this.y) * this.ease;
-                root.style.setProperty('--vibration-jitter', '0px');
+        class Particle {
+            constructor(x, y) {
+                this.x = x + (Math.random() * 20 - 10);
+                this.y = y + (Math.random() * 20 - 10);
+                this.baseX = x;
+                this.baseY = y;
+                this.size = 2;
+                this.density = (Math.random() * 20) + 10;
             }
-        }
-    }
-
-    function init() {
-        particles = [];
-        const fontSize = Math.min(canvas.width * 0.2, 140);
-        ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans'`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'white';
-        ctx.fillText(NAME_TO_DISPLAY, canvas.width / 2, canvas.height / 2);
-
-        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Responsive density: higher on mobile
-        const step = canvas.width < 768 ? 5 : 7;
-
-        for (let y = 0; y < canvas.height; y += step) {
-            for (let x = 0; x < canvas.width; x += step) {
-                const index = (y * canvas.width + x) * 4;
-                if (pixels.data[index + 3] > 128) {
-                    particles.push(new Particle(x, y));
+            draw() {
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < mouse.radius) {
+                    let force = (mouse.radius - distance) / mouse.radius;
+                    this.x -= (dx / distance) * force * this.density;
+                    this.y -= (dy / distance) * force * this.density;
+                    
+                    // Hardware Vibration (Android)
+                    if (navigator.vibrate) navigator.vibrate(5);
+                } else {
+                    this.x -= (this.x - this.baseX) / 12;
+                    this.y -= (this.y - this.baseY) / 12;
                 }
             }
         }
-    }
 
-    function handleInput(e) {
-        const pos = e.touches ? e.touches[0] : e;
-        interaction.x = pos.clientX;
-        interaction.y = pos.clientY;
-    }
+        function initParticles() {
+            particles = [];
+            // Clear and draw text to scan pixels
+            ctx.fillStyle = 'white';
+            const fontSize = Math.min(canvas.width * 0.22, 160);
+            ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans'`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(MY_NAME, canvas.width / 2, canvas.height / 2);
 
-    window.addEventListener('mousemove', handleInput);
-    window.addEventListener('touchmove', handleInput, { passive: false });
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        init();
-    });
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function render() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < particles.length; i++) {
-            particles[i].update();
-            particles[i].draw();
+            // Step 5 means every 5th pixel - perfect balance for mobile/desktop
+            const step = 5;
+            for (let y = 0; y < data.height; y += step) {
+                for (let x = 0; x < data.width; x += step) {
+                    if (data.data[(y * 4 * data.width) + (x * 4) + 3] > 128) {
+                        particles.push(new Particle(x, y));
+                    }
+                }
+            }
         }
-        requestAnimationFrame(render);
-    }
 
-    init();
-    render();
-</script>
+        function handleMove(e) {
+            const pos = e.touches ? e.touches[0] : e;
+            mouse.x = pos.clientX;
+            mouse.y = pos.clientY;
+        }
 
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchstart', handleMove);
+        window.addEventListener('touchmove', handleMove);
+        window.addEventListener('resize', resize);
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Run
+        resize();
+        animate();
+    </script>
 </body>
 </html>
