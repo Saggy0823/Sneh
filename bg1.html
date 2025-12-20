@@ -3,132 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Symmetry | Haptic Fix</title>
+    <title>Elite Haptic Interface</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap');
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; overscroll-behavior: none; }  
-        canvas { display: block; position: absolute; z-index: 1; }
-        .ui { position: relative; z-index: 10; height: 100vh; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-        .vibe-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 100; display: flex;
-            align-items: center; justify-content: center; cursor: pointer;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;800&display=swap');
+
+        :root {
+            --accent: #0071e3;
+            --vibration-jitter: 0px;
         }
-        .vibe-msg { color: white; font-family: 'Plus Jakarta Sans'; text-align: center; border: 1px solid #333; padding: 20px; border-radius: 20px; background: #111; }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            touch-action: none; overscroll-behavior: none;
+        }
+
+        /* Jitter wrapper for iOS Visual Haptics */
+        #haptic-wrapper {
+            width: 100%; height: 100%;
+            transform: translate(var(--vibration-jitter), var(--vibration-jitter));
+        }
+
+        canvas { display: block; position: absolute; z-index: 1; top: 0; left: 0; }
+
+        /* --- UI OVERLAYS --- */
+        .glass-nav {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 30px; padding: 12px 30px;
+            background: rgba(20, 20, 20, 0.7); border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px; align-items: center;
+        }
+
+        .glass-nav a { color: #888; text-decoration: none; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .glass-nav .active { color: #fff; }
+
+        .hero-container {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; pointer-events: none;
+        }
+
+        .tagline { color: var(--accent); font-size: 10px; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 20px; font-weight: 800; }
+
+        .footer-cta {
+            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+            z-index: 20; pointer-events: auto;
+        }
+
+        .btn-vibe {
+            background: #fff; color: #000; border: none; padding: 18px 45px;
+            border-radius: 50px; font-weight: 800; font-size: 14px;
+            cursor: pointer; box-shadow: 0 10px 40px rgba(255,255,255,0.15);
+            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .btn-vibe:active { transform: scale(0.92); opacity: 0.8; }
+
+        /* Activation Overlay */
+        #gatekeeper {
+            position: fixed; inset: 0; background: #000; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; text-align: center;
+        }
+        .gatekeeper-msg { color: white; border: 1px solid #222; padding: 40px; border-radius: 30px; background: #050505; }
     </style>
 </head>
 <body>
 
-    <div class="vibe-overlay" id="vibeOverlay">
-        <div class="vibe-msg">
-            <h2 style="margin:0">ACTIVATE ENGINE</h2>
-            <p style="font-size: 12px; color: #888">Tap anywhere to sync hardware</p>
-        </div>
+<div id="gatekeeper">
+    <div class="gatekeeper-msg">
+        <h2 style="margin: 0 0 10px 0;">SYMMETRY ENGINE</h2>
+        <p style="color: #666; font-size: 13px;">TAP TO SYNC HARDWARE HAPTICS</p>
     </div>
+</div>
 
-    <div class="ui">
-        <p style="color: #333; letter-spacing: 10px; text-transform: uppercase;">Interactive Fabric</p>
-    </div>
-    
+<div id="haptic-wrapper">
+    <nav class="glass-nav">
+        <a href="#" class="active">Vision</a>
+        <a href="#">Engine</a>
+        <a href="#">Contact</a>
+    </nav>
+
+    <div class="hero-container">
+        <div class="tagline">Next Gen Interaction</div>
+        </div>
+
     <canvas id="canvas"></canvas>
 
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const overlay = document.getElementById('vibeOverlay');
+    <div class="footer-cta">
+        <button class="btn-vibe" id="vibeStatus">ENGINE READY</button>
+    </div>
+</div>
 
-        const NAME = "SNEH"; // CHANGE THIS TO YOUR NAME
-        let particles = [];
-        const mouse = { x: -1000, y: -1000, radius: 60 };
-        let canVibrate = false;
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const gatekeeper = document.getElementById('gatekeeper');
+    const root = document.documentElement;
 
-        // --- THE FIX: FORCED ACTIVATION ---
-        window.addEventListener('touchstart', () => {
-            if (!canVibrate) {
-                canVibrate = true;
-                overlay.style.display = 'none';
-                // Triple pulse to confirm hardware link
-                if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    // --- CONFIGURATION ---
+    const NAME_TO_DISPLAY = "SNEH"; // <--- CHANGE YOUR NAME HERE
+    let particles = [];
+    const interaction = { x: -1000, y: -1000, radius: 70 }; // Precise interaction circle
+    let hapticsEnabled = false;
+
+    // 1. HARDWARE ACTIVATION
+    window.addEventListener('touchstart', () => {
+        if (!hapticsEnabled) {
+            hapticsEnabled = true;
+            gatekeeper.style.opacity = '0';
+            setTimeout(() => gatekeeper.style.display = 'none', 300);
+            if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+        }
+    });
+
+    window.addEventListener('mousedown', () => {
+        if (!hapticsEnabled) {
+            hapticsEnabled = true;
+            gatekeeper.style.opacity = '0';
+            setTimeout(() => gatekeeper.style.display = 'none', 300);
+        }
+    });
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x + (Math.random() * 100 - 50);
+            this.y = y + (Math.random() * 100 - 50);
+            this.originX = x;
+            this.originY = y;
+            this.size = 2;
+            this.friction = 0.95;
+            this.ease = 0.12;
+            this.density = (Math.random() * 20) + 2;
+            this.color = Math.random() > 0.98 ? '#0071e3' : '#ffffff';
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        update() {
+            let dx = interaction.x - this.x;
+            let dy = interaction.y - this.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < interaction.radius) {
+                let force = (interaction.radius - distance) / interaction.radius;
+                this.x -= (dx / distance) * force * this.density;
+                this.y -= (dy / distance) * force * this.density;
+
+                // VIBRATION ENGINE TRIGGER
+                if (hapticsEnabled) {
+                    if (navigator.vibrate) navigator.vibrate(10); // Physical (Android)
+                    const jitter = (Math.random() * 2 - 1) + 'px'; // Visual (iOS)
+                    root.style.setProperty('--vibration-jitter', jitter);
+                }
+            } else {
+                this.x += (this.originX - this.x) * this.ease;
+                this.y += (this.originY - this.y) * this.ease;
+                root.style.setProperty('--vibration-jitter', '0px');
             }
-        }, { once: false });
+        }
+    }
 
+    function init() {
+        particles = [];
+        const fontSize = Math.min(canvas.width * 0.2, 140);
+        ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans'`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'white';
+        ctx.fillText(NAME_TO_DISPLAY, canvas.width / 2, canvas.height / 2);
+
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Responsive density: higher on mobile
+        const step = canvas.width < 768 ? 5 : 7;
+
+        for (let y = 0; y < canvas.height; y += step) {
+            for (let x = 0; x < canvas.width; x += step) {
+                const index = (y * canvas.width + x) * 4;
+                if (pixels.data[index + 3] > 128) {
+                    particles.push(new Particle(x, y));
+                }
+            }
+        }
+    }
+
+    function handleInput(e) {
+        const pos = e.touches ? e.touches[0] : e;
+        interaction.x = pos.clientX;
+        interaction.y = pos.clientY;
+    }
+
+    window.addEventListener('mousemove', handleInput);
+    window.addEventListener('touchmove', handleInput, { passive: false });
+    window.addEventListener('resize', () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
-        class Particle {
-            constructor(x, y) {
-                this.x = x + (Math.random() * 40 - 20);
-                this.y = y + (Math.random() * 40 - 20);
-                this.baseX = x;
-                this.baseY = y;
-                this.size = 2.5;
-                this.density = (Math.random() * 20) + 10;
-            }
-            draw() {
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            update() {
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist < mouse.radius) {
-                    let force = (mouse.radius - dist) / mouse.radius;
-                    this.x -= (dx/dist) * force * this.density;
-                    this.y -= (dy/dist) * force * this.density;
-                    
-                    // Strong physical vibration call
-                    if (canVibrate && navigator.vibrate) {
-                        navigator.vibrate(15); 
-                    }
-                } else {
-                    this.x -= (this.x - this.baseX) / 10;
-                    this.y -= (this.y - this.baseY) / 10;
-                }
-            }
-        }
-
-        function init() {
-            particles = [];
-            ctx.fillStyle = 'white';
-            ctx.font = `bold ${Math.min(canvas.width * 0.2, 120)}px 'Plus Jakarta Sans'`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(NAME, canvas.width/2, canvas.height/2);
-
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let y = 0; y < data.height; y += 6) {
-                for (let x = 0; x < data.width; x += 6) {
-                    if (data.data[(y * 4 * data.width) + (x * 4) + 3] > 128) {
-                        particles.push(new Particle(x, y));
-                    }
-                }
-            }
-        }
-
-        const handleMove = (e) => {
-            const t = e.touches ? e.touches[0] : e;
-            mouse.x = t.clientX;
-            mouse.y = t.clientY;
-        };
-
-        window.addEventListener('touchmove', handleMove, { passive: false });
-        window.addEventListener('mousemove', handleMove);
-
-        function animate() {
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-
         init();
-        animate();
-    </script>
+    });
+
+    function render() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
+        }
+        requestAnimationFrame(render);
+    }
+
+    init();
+    render();
+</script>
+
 </body>
 </html>
