@@ -386,7 +386,7 @@ section{position:relative;z-index:2;min-height:100vh;display:flex;align-items:ce
     <div class="eyebrow reveal">Chapter Nine</div>
     <h2 class="reveal" style="font-size:2.4rem;margin-bottom:30px;">A Letter For You</h2>
     <div class="letter-paper reveal" id="letter-box">
-      <p class="letter-editme">— paste your message here —<br><br>
+      <p class="letter-editme"><br><br>
       Happy 21st Birthday, my love. ❤️
 
 Twenty-one years ago, the world was blessed with someone extraordinary. Little did anyone know that one day, that beautiful soul would become the greatest blessing of my life.
@@ -560,8 +560,7 @@ And I'll keep loving you until my very last breath.
 Happy Birthday, my forever. ❤️🎂
 
 — Yours, always and forever,
-Tujha Chinnu ❤️
-.</p>
+tujha chinnu ❤️</p>
       <div class="letter-signoff">Forever yours, Sagar ❤️</div>
     </div>
   </div>
@@ -613,6 +612,8 @@ const nameStr="Sneha ❤️";
 /* ================= BACKGROUND CANVAS: stars, fireflies, petals ================= */
 const bgCanvas=document.getElementById('bg-canvas');
 const bgCtx=bgCanvas.getContext('2d');
+const fxCanvas=document.getElementById('fx-canvas');
+const fxCtx=fxCanvas.getContext('2d');
 let W,H;
 function resize(){W=bgCanvas.width=window.innerWidth;H=bgCanvas.height=window.innerHeight;
   fxCanvas.width=window.innerWidth;fxCanvas.height=window.innerHeight;}
@@ -676,8 +677,6 @@ resize();
 requestAnimationFrame(drawBG);
 
 /* ================= FX CANVAS: shooting stars + heart rain ================= */
-const fxCanvas=document.getElementById('fx-canvas');
-const fxCtx=fxCanvas.getContext('2d');
 let shootingStars=[];
 function spawnShootingStar(){
   shootingStars.push({x:Math.random()*W*0.6+W*0.2,y:Math.random()*H*0.2,len:Math.random()*120+80,speed:Math.random()*8+6,angle:Math.PI/4,life:1});
